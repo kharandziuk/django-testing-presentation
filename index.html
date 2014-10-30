@@ -34,188 +34,243 @@
 
 	<body>
 
-		<div class="reveal">
-      <div class="slides">
-        <section>
-            <h1>Painless testing in Django</h1>
-            <p>Max Kharandziuk @ DjangoStars</p>
-        </section>
-        <section>
-          <h2>THINGS THAT MAKE ME HAPPY</h2>
+	<div class="reveal">
+    <div class="slides">
+      <section>
+        <h1>Painless testing in Django</h1>
+        <p>Max Kharandziuk @ DjangoStars</p>
+      </section>
+      <section>
+          <h1>Foundation of painsless testing for Django</h1>
+      </section>
+      <section>
+          <h2>No shared state: don't use fixtures</h1>
+          <h3>cons:</h2>
           <ul>
-            <li>defensife programming</li>
-            <li>high test coverage</li>
-            <li>easy to write tests</li>
-            <li>hard to broke code accidentally</li>
+              <li>hard to maintain</li>
+              <li>it`s not descriptive</li>
+              <li>it`s JSON</li>
           </ul>
-        </section>
-        <section>
-          <h2>assert is a way to guard you code</h2>
+      </section>
+      <section>
+          <h2>Better: factory_boy -- factories for data</h2>
+          <h3>pros:</h3>
           <ul>
-            <li>check program invariants</li>
-            <li>checking contracts (e.g. pre-conditions and post-conditions)</li>
-            <li>checked documentation</li>
-            <li>runtime checks on program logic</li>
+              <li>it's just Python code</li>
+              <li>explicit input data for tests</li>
+              <li>easy to create complicated data(1-n or n-m relations)</li>
+              <li>easy to extend for something other then RDBMS</li>
           </ul>
-        </section>
-        <section>
-          <h2>Invariant check example:</h2>
+      </section>
+      <section>
           <pre><code>
-            def some_function(arg):
-                assert not DB.closed()
-                ... # code goes here
-                assert not DB.closed()
-                return result
+          class SetFactory(factory.DjangoModelFactory):
+              FACTORY_FOR = models.Set
+              title = factory.Sequence(lambda i: "set{}".format(i))
+
+          class FieldFactory(factory.DjangoModelFactory):
+              FACTORY_FOR = models.Field
+              title = factory.Sequence(lambda i: "field{}".format(i))
+              set = factory.SubFactory(SetFactory)
+
+          
+          field = FieldFactory(title='specific') 
+          assert field.set != None
           </code></pre>
-        </section>
-        <section>
-          <h2>Contract check example:</h2>
+      </section>
+      <section>
+          <h2>Proper level of abstraction: think request-response</h2>
+
+          <h3>WebTest</h3>
+          <p>A test framework for functional testing</p>
+          <h3>Django-WebTest</h3>
+          <p>Set of helpers intended to simpify integration with Django</p>
+      </section>
+      <section>
+          <h4>Overview:</h4>
+          <ul>
+              <li>faster then Selenium</li>
+              <li>convenient form handling</li>
+              <li>convenient authentication</li>
+          </ul>
+          <br>
+          <h4>but:</h4>
+          <ul>
+              <li>no JS/Ajax testing</li>
+          </ul>
+      </section>
+      <section>
           <pre><code>
-            def first_upper(astring):
-                assert isinstance(astring, str) and len(astring) > 0
-                result = astring[0].upper()
-                assert isinstance(result, str) and len(result) == 1
-                assert result == result.upper()
-                return result
+          from django_webtest import WebTest
+
+          class AuthTest(WebTest):
+              fixtures = ['users.json']
+
+              def test_login(self)
+                  form = self.app.get(reverse('auth_login')).form
+                  form['username'] = 'foo'
+                  form['password'] = 'bar'
+                  response = form.submit().follow()
+                  self.assertEqual(response.context['user'].username, 'foo')
           </code></pre>
-        </section>
-        <section>
-          <h2>Runtime check example:</h2>
+      </section>
+
+      <section>
           <pre><code>
-          assert target in (x, y, z)
-          if target == x:
-              run_x_code()
-          elif target == y:
-              run_y_code()
-          else:
-              assert target == z
-              run_z_code()
+          from django_webtest import WebTest
+
+          class AuthTest(WebTest):
+
+              def test_login(self)
+                  user = UserFactory(username='foo', password='bar')
+                  form = self.app.get(reverse('auth_login')).form
+                  form['username'] = 'foo'
+                  form['password'] = 'bar'
+                  response = form.submit().follow()
+                  self.assertEqual(response.context['user'].username, 'foo')
           </code></pre>
-        </section>
-        <section>
-            <h2>Don't do that</h2>
-            <pre><code>
-            try:
-                assert False
-            except AssertionException:
-                ...
-            </code></pre>
-        </section>
-        <section>
-          <h2>Why should we test code?<h2>
-        </section>
-        <section>
-          <h1>assert should</h1>
-        </section>
-        <section>
-            <h2>A little bit of practice:</h2>
-            <p>assert sqrt(4) == 2</p>
-            <p># should we provide a test for sqrt(9)?</p>
-            <p># ...sqrt(4.5)?</p>
-            <p># ...sqrt(-1)?</p>
-        </section>
-        <section>
-            <h2>A little bit of theory:</h2>
-            <ul>
-                <li>black box</li>
-                <li>possitive/negative logic</li>
-                <li>classes of input</li>
-            </ul>
-        </section>
-        <section>
-            <h1>Foundation of painsless testing for Django</h1>
-        </section>
-        <section>
-            <h2>No shared state: don't use fixtures</h1>
-            <h3>cons:</h2>
-            <ul>
-                <li>hard to maintain</li>
-                <li>it`s not descriptive</li>
-                <li>it`s JSON</li>
-            </ul>
-        </section>
-        <section>
-            <h2>Better: factory_boy -- factories for data</h2>
-            <h3>pros:</h3>
-            <ul>
-                <li>it's just Python code</li>
-                <li>explicit input data for tests</li>
-                <li>easy to create complicated data(1-n or n-m relations)</li>
-                <li>easy to extend for something other then RDBMS</li>
-            </ul>
-        </section>
-        <section>
-            <pre><code>
-            class SetFactory(factory.DjangoModelFactory):
-                FACTORY_FOR = models.Set
-                title = factory.Sequence(lambda i: "set{}".format(i))
+      </section>
 
-            class FieldFactory(factory.DjangoModelFactory):
-                FACTORY_FOR = models.Field
-                title = factory.Sequence(lambda i: "field{}".format(i))
-                set = factory.SubFactory(SetFactory)
+      <section>
+        <pre><code>
+          def test_can_reach_search__for_some_groups(self):
+              me = AccountFactory()
+              response = self.app.get(
+                  reverse('search:query',),
+                  params={
+                      'q': 'some query',
+                      'groups': SEARCH_GROUPS.DIVERS + SEARCH_GROUPS.SHOPS,
+                  },
+                  user=me.username,
+              )
+              self.assertTemplateUsed(response, 'search/search.html')
+        </code></pre>
+      </section>
+      <section>
+        <h1>it plays really nice with DRF</h1>
+      </section>
 
-            field = FieldFactory() 
-            </code></pre>
-        </section>
-        <section>
-            <h2>Proper level of abstraction: think request-response</h2>
+      <section>
+        <pre><code>
+          def test_can_perform_search_request_by_location_title(self):
+            me = AccountFactory()
+            searched_divers = []
+            searched_str = 'searched'
+            for i in xrange(5):
+                searched_divers.append(
+                    LocationFactory(title=searched_str + str(i))
+                )
+            # non_searched_diver
+            LocationFactory(title='redundant')
+            response = self.create_search_ajax_request(me, searched_str)
+            self.assertEqual(response.status_int, 200)
+            result = json.loads(response.body)
+            places = [x for x in result if x['text'] == '5 locations'][0]
+            self.assertEqual(len(places['children']), 3)
+            self.assertIn('all', places)
+            for each in places['children']:
+                self.assertIn('text', each)
+                self.assertIn('id', each)
+        </code></pre>
+      </section>
+<section>
+  <pre><code>
+    def test_can_sign_up(self):
+        _user = factories.UserFactory.build()
+        assert _user.pk == None
+        response = self.app.post(
+            reverse('api-v1:users'),
+            params={
+                'username': _user.username,
+                'password': factories.USER_PASSWORD,
+            },
+            xhr=True,
+        )
+        self.assertEqual(201, response.status_code)
+        user = models.User.objects.get(username=_user.username)
+        self.assertIsNotNone(user)
+  </code></pre>
+</section>
 
-            Tools: WebTest and Django-WebTest
+<section>
+  <pre><code>
+    def test_user_can_get_and_use_token(self):
+        user = factories.UserFactory()
+        response = self.app.post(
+            reverse('api-v1:login'),
+            params={
+                'username': user.username,
+                'password': factories.USER_PASSWORD,
+            },
+            xhr=True,
+        )
+        token = response.json['token']
+        response = self.app.get(
+            reverse('api-v1:users'),
+            #extra_environ={u'Authorization:': u'JWT {}'.format(token)},
+            headers={u'Authorization': 'JWT {}'.format(token)},
+            #user = user.username
+        )
+        self.assertEqual(response.status_code, 200)
+  </code></pre>
+</section>
 
-pros:
-<ul>
-    <li>faster then Selenium</li>
-    <li>convenient form handling</li>
-    <li>convenient authentication</li>
-</ul>
-but:
-<ul>
-    <li>no JS/Ajax testing</li>
-</ul>
-        </section>
-        <section>
-            <pre><code>
-                from django_webtest import WebTest
 
-                class AuthTest(WebTest):
-                    fixtures = ['users.json']
+    <section>
+    <pre><code>
+      def test_user_creates_post(self):
+          user = factories.UserFactory()
+          assert user.posts.count() == 0
 
-                    def test_login(self)
-                        form = self.app.get(reverse('auth_login')).form
-                        form['username'] = 'foo'
-                        form['password'] = 'bar'
-                        # what about csrf?
-                        response = form.submit().follow()
-                        self.assertEqual(response.context['user'].username, 'foo')
-            </code></pre>
-        </section>
+          response = self.app.post(
+              reverse('api-v1:login'),
+              params={
+                  'username': user.username,
+                  'password': factories.USER_PASSWORD,
+              },
+              xhr=True,
+          )
+          token = response.json['token']
 
-        <section>
-            <h2>rules of thumb for easy to mantain tests:</h2>
-            <ul>
-                <li>no mocks(except third-patry API, e.g.: Twitter)</li>
-                <li>no logic in tests(don't use loops or conditions!)</li>
-                <li>one class of data input -- one test method</li>
-            </ul>
-        </section>
+          TEXT = 'some text'
+          TITLE = 'title'
+          response = self.app.post(
+              reverse('api-v1:posts'),
+              params={
+                  'title': TITLE,
+                  'body': TEXT,
+              },
+              user=user.username,
+              headers={u'Authorization': 'JWT {}'.format(token)},
+          )
+          self.assertEqual(user.posts.count(), 1)
+    </code></pre>
+    </section>
 
-        <section>
-            <h2>Don't do that!</h2>
-            <pre><code>
-                patch('project.hub.LoginHandler.onBitesRegistrationComplete', on_bites_registration_complete)
-                @patch('project.fahlo_aws_sns.AWSPushNotification.exec_in_pool')
-                @patch('project.hub.LoginHandler.get_gigya_user_info')
-                @patch('project.hub.LoginHandler.registration', registration)
-                @patch('project.session.RedisSessionStore.get_session')
-                @patch('project.hub.LoginHandler.session', new_callable=PropertyMock)
-                @patch('project.hub.LoginHandler.check_user_password')
-                def test_login_api(...
-             </code></pre>
-        </section>
+      <section>
+          <h2>rules of thumb for easy to mantain tests:</h2>
+          <ul>
+              <li>no mocks(except third-patry API, e.g.: Twitter)</li>
+              <li>no logic in tests(don't use loops or conditions!)</li>
+              <li>one class of data input -- one test method</li>
+          </ul>
+      </section>
 
-      </div>
-		</div>
+      <section>
+          <h2>Don't do that!</h2>
+          <pre><code>
+              patch('project.hub.LoginHandler.onBitesRegistrationComplete', on_bites_registration_complete)
+              @patch('project.project_aws_sns.AWSPushNotification.exec_in_pool')
+              @patch('project.hub.LoginHandler.get_gigya_user_info')
+              @patch('project.hub.LoginHandler.registration', registration)
+              @patch('project.session.RedisSessionStore.get_session')
+              @patch('project.hub.LoginHandler.session', new_callable=PropertyMock)
+              @patch('project.hub.LoginHandler.check_user_password')
+              def test_login_api(...
+           </code></pre>
+      </section>
+	</div>
+  </div>
 
 		<script src="lib/js/head.min.js"></script>
 		<script src="js/reveal.min.js"></script>
