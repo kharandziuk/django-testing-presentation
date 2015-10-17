@@ -39,11 +39,16 @@
 	<div class="reveal">
     <div class="slides">
       <section>
-        <h1>Painless testing for Django</h1>
+        <h1>Painless testing</h1>
         <br>
-        
-        <p>Max Kharandziuk @ DjangoStars</p>
+        <p>Max Kharandziuk</p>
+        <img src="ds-logo.png" alt="" style="border: 0px; box-shadow: none; width: 80%">
       </section>
+
+      <section>
+        <img src="ponyland.jpg" alt="">
+      </section>
+
       <section>
         <h2>assert is a way to guard you code</h2>
         <ul>
@@ -103,10 +108,12 @@
 
         <section>
             <h2>A little bit of practice:</h2>
-            <p>assert sqrt(4) == 2</p>
-            <p># should we provide a test for sqrt(9)?</p>
-            <p># ...sqrt(4.5)?</p>
-            <p># ...sqrt(-1)?</p>
+            <pre><code>
+            assert sqrt(4) == 2
+            # should we provide a test for sqrt(9)?
+            # sqrt(4.5)?
+            # sqrt(-1)?
+            </code></pre>
         </section>
 
         <section>
@@ -114,13 +121,20 @@
             <ul>
                 <li>black box</li>
                 <li>possitive/negative logic</li>
-                <li>classes of input</li>
+                <li>domains of input</li>
             </ul>
         </section>
-        <section>
-            <h1>Djangooo!</h1>
-        </section>
 
+      <section>
+          <h2>Guidelines:</h2>
+          <ul>
+            <li>Don't start with Selenium</li>
+            <li>Don't test UI</li>
+            <li>Think about maintance</li>
+            <li>Grow your test suite carefully</li>
+            <li>Don't test everything</li>
+          </ul>
+      </section>
       <section>
           <h2>No shared state: don't use fixtures</h1>
           <h3>cons:</h2>
@@ -131,7 +145,7 @@
           </ul>
       </section>
       <section>
-          <h2>Better: factory_boy -- factories for data</h2>
+          <h2>Better: factory_boy – factories for data</h2>
           <h3>pros:</h3>
           <ul>
               <li>it's just Python code</li>
@@ -230,9 +244,26 @@ def test_can_perform_search__with_tag(self):
     self.assertTemplateUsed(response, 'search/search.html')
         </code></pre>
       </section>
+
       <section>
-        <h1>it plays really nice with DRF</h1>
+        <pre><code>
+      def test_can_sign_up(self):
+          _user = factories.UserFactory.build()
+          assert _user.pk == None
+          response = self.app.post(
+              reverse('api-v1:users'),
+              params={
+                  'username': _user.username,
+                  'password': factories.USER_PASSWORD,
+              },
+              xhr=True,
+          )
+          self.assertEqual(201, response.status_code)
+          user = models.User.objects.get(username=_user.username)
+          self.assertIsNotNone(user)
+        </code></pre>
       </section>
+
 
       <section>
         <pre><code>
@@ -247,31 +278,17 @@ def test_can_perform_search_by_post_title(self):
         reverse('search:query',),
         params={
             'q': 'search',
-        }, xhr=True, user=me.username,
+        }, user=me.username,
     )
     self.assertEqual(response.status_int, 200)
     result = response.json
     self.assertEqual(len(result['result']), 2)
         </code></pre>
       </section>
-<section>
-  <pre><code>
-def test_can_sign_up(self):
-    _user = factories.UserFactory.build()
-    assert _user.pk == None
-    response = self.app.post(
-        reverse('api-v1:users'),
-        params={
-            'username': _user.username,
-            'password': factories.USER_PASSWORD,
-        },
-        xhr=True,
-    )
-    self.assertEqual(201, response.status_code)
-    user = models.User.objects.get(username=_user.username)
-    self.assertIsNotNone(user)
-  </code></pre>
-</section>
+
+      <section>
+        <h1>it's really easy to test REST API</h1>
+      </section>
 
 <section>
   <pre><code>
@@ -279,18 +296,13 @@ def test_can_sign_up(self):
         user = factories.UserFactory()
         response = self.app.post(
             reverse('api-v1:login'),
-            params={
-                'username': user.username,
-                'password': factories.USER_PASSWORD,
-            },
+            params={ 'username': user.username, 'password': factories.USER_PASSWORD, },
             xhr=True,
         )
         token = response.json['token']
         response = self.app.get(
             reverse('api-v1:users'),
-            headers={
-              u'Authorization': 'JWT {}'.format(token)
-            },
+            headers={ u'Authorization': 'JWT {}'.format(token) },
         )
         self.assertEqual(response.status_code, 200)
   </code></pre>
@@ -303,25 +315,32 @@ def test_user_creates_post(self):
     user = factories.UserFactory()
     assert user.posts.count() == 0
     response = self.app.post(
-        reverse('api-v1:login'),
+        reverse('api-v1:login'), xhr=True,
         params={
-            'username': user.username,
-            'password': factories.USER_PASSWORD,
+            'username': user.username, 'password': factories.USER_PASSWORD,
         },
-        xhr=True,
     )
     token = response.json['token']
     response = self.app.post(
-        reverse('api-v1:posts'),
-        params={
-            'title': 'some text',
-            'body': 'title',
-        },
-        user=user.username,
+        reverse('api-v1:posts'), user=user.username,
+        params={ 'title': 'some text', 'body': 'title', },
         headers={u'Authorization': 'JWT {}'.format(token)},
     )
     self.assertEqual(user.posts.count(), 1)
     </code></pre>
+    </section>
+    <section>
+      <h2>Automate boring things!</h2>
+      <p>
+        Consider a simple text search implementation
+        <pre><code>
+        Post(body="foo foo bar")
+        Post(body="foo bar")
+        Post(body="bar bar bar")
+
+        query("foo bar")
+        </code></pre>
+      </p>
     </section>
 
       <section>
@@ -340,8 +359,6 @@ def test_login_api(...
 <section>
 <pre><code>
 class UsersEndpointTestCase(WebTest):
-  setup_auth = False
-
   @patch('users.backends.requests')
   def test_can_sign_up_and_get_token(self, mock_requests):
     data_for_mock = {
@@ -349,14 +366,10 @@ class UsersEndpointTestCase(WebTest):
       "last_name": "Kharandziuk", "locale": "en_GB",
     }
     mock_requests.get.return_value.status_code = 200
-    mock_requests.get.return_value.json =
-      lambda: data_for_mock
+    mock_requests.get.return_value.json = lambda: data_for_mock
     response = self.app.post(
       reverse('api-v1:login'),
-      params={
-          'username': '#token',
-          'password': factories.USER_PASSWORD,
-      },
+      params={ 'username': '#token', 'password': factories.USER_PASSWORD, },
       xhr=True,
     )
     assert response.json['token']
@@ -369,6 +382,15 @@ class UsersEndpointTestCase(WebTest):
       </section>
       <section>
             <h2>one class of data input -- one test method</h2>
+      </section>
+      <section>
+        <img src="napoleon.jpg" alt="">
+      </section>
+      <section>
+        <img src="bogart.jpg" alt="">
+      </section>
+      <section>
+        <h1>Q&A</h1>
       </section>
 	</div>
   </div>
